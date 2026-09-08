@@ -1,4 +1,3 @@
-
 pub(crate) mod enum_from_csv;
 
 /// Generates a Rust enum from a CSV file.

@@ -1,7 +1,7 @@
-
 syn::custom_keyword!(from);
 syn::custom_keyword!(with);
 
+#[rustfmt::skip]
 #[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(Hash)]
 pub enum CsvProperty {
     Header(bool),
@@ -24,14 +24,12 @@ impl syn::parse::Parse for CsvProperty {
             }
             Ok(CsvProperty::Delimiter(value.value() as u8))
         } else {
-            Err(syn::Error::new(
-                ident.span(),
-                "Unexpected csv property",
-            ))
+            Err(syn::Error::new(ident.span(), "Unexpected csv property"))
         }
     }
 }
 
+#[rustfmt::skip]
 #[derive(Clone)]
 pub struct CsvConfigDeclaration {
     pub properties: syn::punctuated::Punctuated<CsvProperty, syn::Token![,]>,
@@ -44,6 +42,7 @@ impl syn::parse::Parse for CsvConfigDeclaration {
     }
 }
 
+#[rustfmt::skip]
 #[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(Hash)]
 pub struct CsvConfigSpecification {
     pub header: Option<bool>,
@@ -81,12 +80,14 @@ impl CsvConfigSpecification {
     }
 }
 
+#[rustfmt::skip]
 #[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(Hash)]
 pub struct CsvConfig {
     pub header: bool,
     pub delimiter: u8,
 }
 
+#[rustfmt::skip]
 #[derive(Debug)] #[derive(Clone)] #[derive(PartialEq, Eq)] #[derive(Hash)]
 #[derive(thiserror::Error)] #[error("Missing property: {property_name}")]
 pub struct CsvConfigMissingPropertyError {
@@ -100,9 +101,11 @@ impl TryFrom<CsvConfigSpecification> for CsvConfig {
         let header = specification.header.ok_or(CsvConfigMissingPropertyError {
             property_name: "header".into(),
         })?;
-        let delimiter = specification.delimiter.ok_or(CsvConfigMissingPropertyError {
-            property_name: "delimiter".into(),
-        })?;
+        let delimiter = specification
+            .delimiter
+            .ok_or(CsvConfigMissingPropertyError {
+                property_name: "delimiter".into(),
+            })?;
 
         Ok(CsvConfig { header, delimiter })
     }
@@ -112,12 +115,18 @@ impl syn::parse::Parse for CsvConfig {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let declaration = input.parse::<CsvConfigDeclaration>()?;
         let specification = CsvConfigSpecification::default().override_with(declaration.into());
-        specification.try_into().map_err(|err: CsvConfigMissingPropertyError| {
-            syn::Error::new(input.span(), format!("Missing property: {}", err.property_name))
-        })
+        specification
+            .try_into()
+            .map_err(|err: CsvConfigMissingPropertyError| {
+                syn::Error::new(
+                    input.span(),
+                    format!("Missing property: {}", err.property_name),
+                )
+            })
     }
 }
 
+#[rustfmt::skip]
 #[derive(Clone)]
 pub struct EnumFromCsv {
     pub visibility: syn::Visibility,
@@ -144,6 +153,7 @@ impl syn::parse::Parse for EnumFromCsv {
     }
 }
 
+#[rustfmt::skip]
 #[derive(Clone)]
 pub struct Variant {
     pub identifier: syn::Ident,
@@ -151,9 +161,14 @@ pub struct Variant {
 
 impl Variant {
     pub fn from_name(name: &str) -> Result<Self, syn::Error> {
-        syn::parse_str::<syn::Ident>(name).map(|identifier| Self { identifier }).map_err(|err| {
-            syn::Error::new(proc_macro2::Span::call_site(), format!("Invalid variant name '{}': {}", name, err))
-        })
+        syn::parse_str::<syn::Ident>(name)
+            .map(|identifier| Self { identifier })
+            .map_err(|err| {
+                syn::Error::new(
+                    proc_macro2::Span::call_site(),
+                    format!("Invalid variant name '{}': {}", name, err),
+                )
+            })
     }
 }
 
@@ -166,6 +181,7 @@ impl quote::ToTokens for Variant {
     }
 }
 
+#[rustfmt::skip]
 #[derive(Clone)]
 pub struct Enum {
     pub visibility: syn::Visibility,
@@ -173,6 +189,7 @@ pub struct Enum {
     pub variants: Vec<Variant>,
 }
 
+#[rustfmt::skip]
 #[derive(Debug)]
 #[derive(thiserror::Error)]
 pub enum EnumFromCsvError {
@@ -186,12 +203,15 @@ pub enum EnumFromCsvError {
     PathResolve(#[from] std::env::VarError),
 }
 
-pub fn resolve_path_relative_to_cargo_manifest(path: &str) -> Result<std::path::PathBuf, std::env::VarError> {
+pub fn resolve_path_relative_to_cargo_manifest(
+    path: &str,
+) -> Result<std::path::PathBuf, std::env::VarError> {
     let path = std::path::Path::new(path);
     if path.is_absolute() {
         Ok(path.to_path_buf())
     } else {
-        let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR").ok_or(std::env::VarError::NotPresent)?;
+        let manifest_dir =
+            std::env::var_os("CARGO_MANIFEST_DIR").ok_or(std::env::VarError::NotPresent)?;
         Ok(std::path::PathBuf::from(manifest_dir).join(path))
     }
 }
@@ -239,9 +259,12 @@ pub fn transform(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let r#enum = match Enum::try_from(enum_from_csv) {
         Ok(r#enum) => r#enum,
         Err(err) => {
-            return syn::Error::new(proc_macro2::Span::call_site(), format!("Failed to read CSV file: {}", err))
-                .to_compile_error()
-                .into();
+            return syn::Error::new(
+                proc_macro2::Span::call_site(),
+                format!("Failed to read CSV file: {}", err),
+            )
+            .to_compile_error()
+            .into();
         }
     };
     let tokens = quote::quote! {
