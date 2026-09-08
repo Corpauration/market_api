@@ -36,7 +36,7 @@ create table email_addresses
 );
 
 -- 'email_addresses' list
-create table email_address_disablement
+create table email_address_disablements
 ( email_address_id integer not null primary key references email_addresses(id)
 , created_at timestamptz not null default (now())
 );
