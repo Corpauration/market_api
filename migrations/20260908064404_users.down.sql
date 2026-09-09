@@ -1,11 +1,11 @@
 -- Identity
-delete table users;
+drop table users;
 
 -- 'users' extension
-delete table user_display_infos;
+drop table user_display_infos;
 
 -- 'users' extension
-delete table user_contact_infos;
+drop table user_contact_infos;
 
 -- 'user_contact_infos' list
-delete table user_contact_info_email_addresses;
+drop table user_contact_info_email_addresses;

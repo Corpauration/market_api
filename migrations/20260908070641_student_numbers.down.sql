@@ -1,5 +1,5 @@
 -- Identity
-delete table cy_tech_student_numbers;
+drop table cy_tech_student_numbers;
 
 -- 'users', 'cy_tech_student_numbers' matrix
-delete table users_cy_tech_student_numbers;
+drop table users_cy_tech_student_numbers;
