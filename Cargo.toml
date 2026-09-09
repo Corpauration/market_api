@@ -5,8 +5,11 @@ edition = "2024"
 
 [dependencies]
 axum = "0.8.9"
+chrono = { version = "0.4.45", features = [ "serde" ] }
+derive_more = { version = "2.1.1", features = [ "display" ] }
 dotenv = "0.15.0"
 proc_macros = { path = "./crates/proc_macros" }
+rust_decimal = "1.43.0"
 serde = "1.0.229"
-sqlx = "0.8.6"
+sqlx = { version = "0.9.0", features = [ "runtime-tokio", "postgres", "chrono", "rust_decimal" ] }
 tokio = "1.53.1"
