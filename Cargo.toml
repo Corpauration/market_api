@@ -4,4 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+axum = "0.8.9"
+dotenv = "0.15.0"
 proc_macros = { path = "./crates/proc_macros" }
+serde = "1.0.229"
+sqlx = "0.8.6"
+tokio = "1.53.1"
