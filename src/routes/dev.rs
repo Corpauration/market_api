@@ -23,11 +23,11 @@ pub async fn require_superuser_passphrase(request: axum::extract::Request, next:
 
 pub struct DevRoutes;
 
-impl<State: AxumRouterStateBound> RouteGroup<State> for DevRoutes
+impl<State: AxumRouterStateBound> RouterBundle<State> for DevRoutes
 where
     State: Provider<&'static sqlx::PgPool>,
 {
-    fn add_to(self, router: axum::Router<State>) -> axum::Router<State> {
+    fn apply_to(self, router: axum::Router<State>) -> axum::Router<State> {
         #[allow(unused_imports)]
         use {
             axum::{
