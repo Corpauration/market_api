@@ -1,15 +1,21 @@
 [package]
-name = "market_api"
+name = "market-api"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+# CAUTION: this feature enables arbitrary user-supplied SQL to be asserted safe. Arbitrary SQL will be gracefully rejected when this feature is not enabled. Additionally, The environment variable `ALLOW_SUDO_SQL` must be set to `true` for this feature to be considered enabled.
+allow_sudo_sql = []
+# CAUTION: this feature enables anyone finding the passphrase to authenticate as a superuser. Additionally, The environment variable `ALLOW_SUPERUSER_PASSPHRASE` must be set to `true` for this feature to be considered enabled.
+allow_superuser_passphrase = []
+
 [dependencies]
-axum = "0.8.9"
+axum = { version = "0.8.9", features = [] }
 chrono = { version = "0.4.45", features = [ "serde" ] }
 derive_more = { version = "2.1.1", features = [ "display" ] }
-dotenv = "0.15.0"
-proc_macros = { path = "./crates/proc_macros" }
+futures = "0.3.34"
 rust_decimal = "1.43.0"
 serde = "1.0.229"
 sqlx = { version = "0.9.0", features = [ "runtime-tokio", "postgres", "chrono", "rust_decimal" ] }
+thiserror = "2.0.20"
 tokio = "1.53.1"
