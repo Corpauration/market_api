@@ -147,13 +147,3 @@ where
     sudo_run_sql_into_response(executor, sql).await
 }
 
-pub async fn handle_sudo_run_sql_from_json<'executor, Dependencies, Executor: sqlx::Executor<'executor, Database = sqlx::Postgres>>(
-    state: State<Dependencies>,
-    axum::Json(request): axum::Json<SudoRunSqlRequest<String>>,
-)
--> impl axum::response::IntoResponse
-where
-    Dependencies: Provider<Executor>,
-{
-    handle_sudo_run_sql(state, request).await
-}

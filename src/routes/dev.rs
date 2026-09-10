@@ -33,12 +33,24 @@ where
             axum::{
                 routing::{ get, post, },
                 middleware,
+                extract::{ State as AxumState, Json, },
             },
-            crate::handlers,
+            crate::handlers::{
+                self,
+                dev::{ SudoRunSqlRequest, },
+            },
         };
 
         router
-            .route("/dev/db", post(handlers::dev::handle_sudo_run_sql_from_json::<'static, State, &'static sqlx::PgPool>))
+
+            .route("/dev/echo", get(|body: String| async move { body }))
+
+            .route("/dev/now", get(|| async move { chrono::Utc::now().to_rfc3339() }))
+
+            .route("/dev/db", post(|state: AxumState<State>, Json(request): Json<SudoRunSqlRequest<String>>| async move { 
+                handlers::dev::handle_sudo_run_sql(state, request).await
+            }))
+
             .route_layer(middleware::from_fn(require_superuser_passphrase))
     }
 }
