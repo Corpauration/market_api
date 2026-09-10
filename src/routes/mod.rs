@@ -36,7 +36,9 @@ impl<State: AxumRouterStateBound> RouterExt<State> for axum::Router<State> {
     }
 }
 
+#[rustfmt::skip]
 #[derive(Debug)]
+#[derive(frunk::Generic, frunk::LabelledGeneric)]
 pub struct AppState {
     pub db_pool: sqlx::PgPool,
 }

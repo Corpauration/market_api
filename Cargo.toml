@@ -13,6 +13,8 @@ allow_superuser_passphrase = []
 axum = { version = "0.8.9", features = [] }
 chrono = { version = "0.4.45", features = [ "serde" ] }
 derive_more = { version = "2.1.1", features = [ "display" ] }
+frunk = "0.5.0"
+frunk_core = "0.5.0"
 futures = "0.3.34"
 rust_decimal = "1.43.0"
 serde = "1.0.229"
