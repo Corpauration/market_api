@@ -1,0 +1,46 @@
+<#@ template language="C#" hostspecific="true" #>
+<#@ output extension="" encoding="UTF-8" #>
+<#@ assembly name="System" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Linq" #>
+//! This file is generated and managed by `<#= TemplateName #>`.
+//! Any changes made directly to this file will be lost when the template is next run.
+
+use super::*;
+
+<#
+for (uint arity = 0; arity <= MAX_ARITY; ++arity) {
+    var comma_separated_parameters = string.Join(", ", URange(0, arity).Select(i => $"Param{i}"));
+    var comma_terminated_parameters = arity > 0 ? comma_separated_parameters + ", " : string.Empty;
+    var comma_separated_arguments = string.Join(", ", URange(0, arity).Select(i => $"arg{i}"));
+#>
+impl<Function, <#= comma_terminated_parameters #>Result> StdFnOnce<frunk::HList![<#= comma_separated_parameters #>]> for Function
+where
+    Function: FnOnce(<#= comma_separated_parameters #>) -> Result,
+{
+    type Result = Result;
+
+    fn invoke(self, frunk::hlist_pat![<#= comma_separated_arguments #>]: frunk::HList![<#= comma_separated_parameters #>]) -> Self::Result {
+        self(<#= comma_separated_arguments #>)
+    }
+}
+
+<# } #>
+
+<#+
+const uint MAX_ARITY = 12;
+#>
+<#+
+string TemplateName
+{
+    get { return new System.IO.FileInfo(this.Host.TemplateFile).Name; }
+}
+
+IEnumerable<uint> URange(uint start, uint count)
+{
+    for (uint i = start; i < start + count; ++i) {
+        yield return i;
+    }
+}
+#>
