@@ -362,17 +362,17 @@ mod std_fn_once_implementations;
 pub use std_fn_once_implementations::*;
 
 pub trait StdFnOnceExt<Signature>: StdFnOnce<Signature> {
-    fn curry(self) -> Curry<Func<Self>>
+    fn curry(self) -> Func<Self>
     where
         Self: Sized,
     ;
 }
 impl<Signature, This: StdFnOnce<Signature>> StdFnOnceExt<Signature> for This {
-    fn curry(self) -> Curry<Func<Self>>
+    fn curry(self) -> Func<Self>
     where
         Self: Sized,
     {
-        Curry(Func(self))
+        Func(self)
     }
 }
 
