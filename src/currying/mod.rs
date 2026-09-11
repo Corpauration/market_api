@@ -137,29 +137,7 @@ where
     type PartialOperation<Bound: AddInto<Signature>>: Operation<Bound::Addend>;
     fn partial_is_partial_operation<Bound: AddInto<Signature>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound>;
 }
-
-// Because of the blanket impl, any type implementing `Operation` also implements `Op`.
-// Because of the blanket impl and Rust coherence rules, any type implementing `Op` also implements `Operation`.
-// That is, `Op` is conceptually an alias for `Operation`.
-pub trait Op<Signature> {
-    type Result;
-    type Partial<Bound: AddInto<Signature>>: Op<Bound::Addend>;
-
-    fn bind<Arguments: AddInto<Signature>>(self, arguments: Arguments) -> Self::Partial<Arguments>;
-    fn call(self, arguments: Signature) -> Self::Result;
-}
-impl<Signature, This: Operation<Signature>> Op<Signature> for This {
-    type Result = This::Result;
-    type Partial<Bound: AddInto<Signature>> = This::PartialOperation<Bound>;
-
-    fn bind<Arguments: AddInto<Signature>>(self, arguments: Arguments) -> Self::Partial<Arguments> {
-        This::partial_is_partial_operation(<This as Bindable<Signature>>::bind(self, arguments))
-    }
-
-    fn call(self, arguments: Signature) -> Self::Result {
-        <This as Callable<Signature>>::call(self, arguments)
-    }
-}
+pub use Operation as Op;
 
 #[rustfmt::skip]
 #[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(PartialOrd, Ord)] #[derive(Hash)]
