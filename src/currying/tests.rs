@@ -71,3 +71,19 @@ fn test_sink()
     let Sink = b(sink);
     let Sink = c(sink);
 }
+
+#[test]
+fn test_curry_steps() {
+    fn pack(a: i32, b: i32, c: i32, d: i32, e: i32) -> (i32, i32, i32, i32, i32) {
+        (a, b, c, d, e)
+    }
+
+    #[rustfmt::skip]
+    let result = pack.curry()
+        .with(1)
+        .curry_step::<frunk::HList![i32, i32]>()
+            .with(2)
+            .evaluate(3)
+        .call(frunk::hlist![4, 5]);
+    assert_eq!(result, (1, 2, 3, 4, 5));
+}

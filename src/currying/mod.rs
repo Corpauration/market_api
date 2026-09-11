@@ -59,6 +59,12 @@ pub trait BindableExt<Signature>: Bindable<Signature> {
     where
         Signature: AddIntoSelf
     ;
+
+    fn curry_step<ReducedSignature>(self) -> Curried<Self, Signature, ReducedSignature>
+    where
+        ReducedSignature: AddInto<Signature>,
+        Self: Sized,
+    ;
 }
 impl<Signature, This: Bindable<Signature>> BindableExt<Signature> for This {
     fn with<Argument>(self, argument: Argument) -> Self::Partial<frunk::HList![Argument]>
@@ -79,6 +85,14 @@ impl<Signature, This: Bindable<Signature>> BindableExt<Signature> for This {
     where
         Signature: AddIntoSelf
     ;
+
+    fn curry_step<ReducedSignature>(self) -> Curried<Self, Signature, ReducedSignature>
+    where
+        ReducedSignature: AddInto<Signature>,
+        Self: Sized,
+    {
+        Curried::new(self)
+    }
 }
 
 pub trait Callable<Signature> {
@@ -96,6 +110,11 @@ pub trait CallableExt<Signature>: Callable<Signature> {
     fn eval(self) -> Self::Result
     where
         Signature: From<()>,
+    ;
+
+    fn evaluate<Argument>(self, argument: Argument) -> Self::Result
+    where
+        Signature: From<frunk::HList![Argument]>,
     ;
 
     fn curry(self) -> Curry<Self>
@@ -116,6 +135,13 @@ impl<Signature, This: Callable<Signature>> CallableExt<Signature> for This {
         Signature: From<()>,
     {
         self.call(Signature::from(()))
+    }
+
+    fn evaluate<Argument>(self, argument: Argument) -> Self::Result
+    where
+        Signature: From<frunk::HList![Argument]>,
+    {
+        self.call(Signature::from(frunk::hlist![argument]))
     }
 
     fn curry(self) -> Curry<Self>
@@ -316,7 +342,7 @@ impl<Application, Signature> Operation<Signature> for Curry<Application>
 where
     Application: Operation<Signature>,
 {
-    type PartialOperation<Bound: AddInto<Signature>> = Partial<Curry<Application>, Bound, Signature>;
+    type PartialOperation<Bound: AddInto<Signature>> = Self::Partial<Bound>;
 
     fn partial_is_partial_operation<Bound: AddInto<Signature>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound> {
         partial
@@ -382,9 +408,65 @@ impl<Function, Signature> Operation<Signature> for Func<Function>
 where
     Function: StdFnOnce<Signature>,
 {
-    type PartialOperation<Bound: AddInto<Signature>> = Partial<Func<Function>, Bound, Signature>;
+    type PartialOperation<Bound: AddInto<Signature>> = Self::Partial<Bound>;
 
     fn partial_is_partial_operation<Bound: AddInto<Signature>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound> {
+        partial
+    }
+}
+
+pub struct Curried<Application, FullSignature, ReducedSignature> {
+    pub application: Application,
+    pub _full_signature: std::marker::PhantomData<FullSignature>,
+    pub _reduced_signature: std::marker::PhantomData<ReducedSignature>,
+}
+
+impl<Application, FullSignature, ReducedSignature> Curried<Application, FullSignature, ReducedSignature>
+where
+    ReducedSignature: AddInto<FullSignature>,
+{
+    pub fn new(application: Application) -> Self {
+        Self {
+            application,
+            _full_signature: std::marker::PhantomData,
+            _reduced_signature: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<Application, FullSignature, ReducedSignature> Bindable<ReducedSignature> for Curried<Application, FullSignature, ReducedSignature>
+where
+    Application: Bindable<FullSignature>,
+    ReducedSignature: AddInto<FullSignature>,
+{
+    type Partial<Bound: AddInto<ReducedSignature>> = Partial<Curried<Application, FullSignature, ReducedSignature>, Bound, ReducedSignature>;
+
+    fn bind<Arguments: AddInto<ReducedSignature>>(self, arguments: Arguments) -> Self::Partial<Arguments> {
+        Partial::new(self, arguments)
+    }
+}
+
+impl<Application, FullSignature, ReducedSignature> Callable<ReducedSignature> for Curried<Application, FullSignature, ReducedSignature>
+where
+    Application: Bindable<FullSignature>,
+    ReducedSignature: AddInto<FullSignature>,
+{
+    type Result = Application::Partial<ReducedSignature>;
+
+    fn call(self, arguments: ReducedSignature) -> Self::Result {
+        let Curried { application, .. } = self;
+        application.bind(arguments)
+    }
+}
+
+impl<Application, FullSignature, ReducedSignature> Operation<ReducedSignature> for Curried<Application, FullSignature, ReducedSignature>
+where
+    Application: Bindable<FullSignature>,
+    ReducedSignature: AddInto<FullSignature>,
+{
+    type PartialOperation<Bound: AddInto<ReducedSignature>> = Self::Partial<Bound>;
+
+    fn partial_is_partial_operation<Bound: AddInto<ReducedSignature>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound> {
         partial
     }
 }
