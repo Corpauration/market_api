@@ -139,6 +139,49 @@ where
 }
 pub use Operation as Op;
 
+pub trait OperationExt<Signature>: Operation<Signature> {
+    fn op_bind<Arguments: AddInto<Signature>>(self, arguments: Arguments) -> Self::PartialOperation<Arguments>;
+
+    fn op_with<Argument>(self, argument: Argument) -> Self::PartialOperation<frunk::HList![Argument]>
+    where
+        frunk::HList![Argument]: AddInto<Signature>,
+    ;
+
+    fn op_bind_with_default(self) -> Self::PartialOperation<Signature>
+    where
+        Signature: Default + AddIntoSelf,
+    ;
+
+    type FullyAppliedOp: Operation<Signature::Addend>
+    where
+        Signature: AddIntoSelf
+    ;
+}
+impl<Signature, This: Operation<Signature>> OperationExt<Signature> for This {
+    fn op_bind<Arguments: AddInto<Signature>>(self, arguments: Arguments) -> Self::PartialOperation<Arguments> {
+        Self::partial_is_partial_operation(self.bind(arguments))
+    }
+
+    fn op_with<Argument>(self, argument: Argument) -> Self::PartialOperation<frunk::HList![Argument]>
+    where
+        frunk::HList![Argument]: AddInto<Signature>,
+    {
+        Self::partial_is_partial_operation(self.with(argument))
+    }
+
+    fn op_bind_with_default(self) -> Self::PartialOperation<Signature>
+    where
+        Signature: Default + AddIntoSelf,
+    {
+        Self::partial_is_partial_operation(self.bind_with_default())
+    }
+
+    type FullyAppliedOp = Self::PartialOperation<Signature>
+    where
+        Signature: AddIntoSelf
+    ;
+}
+
 #[rustfmt::skip]
 #[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(PartialOrd, Ord)] #[derive(Hash)]
 #[derive(frunk::Generic, frunk::LabelledGeneric)]
