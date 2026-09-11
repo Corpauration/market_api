@@ -302,6 +302,21 @@ mod std_fn_once_implementations;
 #[allow(unused_imports)]
 pub use std_fn_once_implementations::*;
 
+pub trait StdFnOnceExt<Signature>: StdFnOnce<Signature> {
+    fn curry(self) -> Curry<Func<Self>>
+    where
+        Self: Sized,
+    ;
+}
+impl<Signature, This: StdFnOnce<Signature>> StdFnOnceExt<Signature> for This {
+    fn curry(self) -> Curry<Func<Self>>
+    where
+        Self: Sized,
+    {
+        Curry(Func(self))
+    }
+}
+
 #[rustfmt::skip]
 #[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(PartialOrd, Ord)] #[derive(Hash)] #[derive(Default)]
 #[derive(frunk::Generic, frunk::LabelledGeneric)]
