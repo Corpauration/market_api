@@ -45,6 +45,11 @@ pub trait Bindable<Signature> {
 }
 
 pub trait BindableExt<Signature>: Bindable<Signature> {
+    fn with<Argument>(self, argument: Argument) -> Self::Partial<frunk::HList![Argument]>
+    where
+        frunk::HList![Argument]: AddInto<Signature>,
+    ;
+
     fn bind_with_default(self) -> Self::Partial<Signature>
     where
         Signature: Default + AddIntoSelf,
@@ -56,6 +61,13 @@ pub trait BindableExt<Signature>: Bindable<Signature> {
     ;
 }
 impl<Signature, This: Bindable<Signature>> BindableExt<Signature> for This {
+    fn with<Argument>(self, argument: Argument) -> Self::Partial<frunk::HList![Argument]>
+    where
+        frunk::HList![Argument]: AddInto<Signature>,
+    {
+        self.bind(frunk::hlist![argument])
+    }
+
     fn bind_with_default(self) -> Self::Partial<Signature>
     where
         Signature: Default + AddIntoSelf,
