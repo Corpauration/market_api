@@ -21,11 +21,22 @@ pub async fn require_superuser_passphrase(request: axum::extract::Request, next:
     }
 }
 
-pub struct DevRoutes;
+pub struct DevRoutes<'executor, Executor> {
+    _executor: std::marker::PhantomData<&'executor Executor>,
+}
 
-impl<State: AxumRouterStateBound> RouterBundle<State> for DevRoutes
+impl<'executor, Executor> DevRoutes<'executor, Executor> {
+    pub fn new() -> Self {
+        Self {
+            _executor: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<'executor, Executor, State: AxumRouterStateBound> RouterBundle<State> for DevRoutes<'executor, Executor>
 where
-    State: Provider<&'static sqlx::PgPool>,
+    Executor: sqlx::Executor<'executor, Database = sqlx::Postgres>,
+    State: Provider<Executor>,
 {
     fn apply_to(self, router: axum::Router<State>) -> axum::Router<State> {
         #[allow(unused_imports)]
