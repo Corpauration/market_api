@@ -1,4 +1,8 @@
-
+use axum::{
+    Router,
+    routing::{get, post},
+};
+use std::sync::Arc;
 
 pub trait AxumRouterStateBound: Clone + Send + Sync + 'static {}
 impl<This: Clone + Send + Sync + 'static> AxumRouterStateBound for This {}
@@ -39,6 +43,7 @@ impl<State: AxumRouterStateBound> RouterExt<State> for axum::Router<State> {
 #[rustfmt::skip]
 #[derive(Debug)]
 #[derive(frunk::Generic, frunk::LabelledGeneric)]
+#[non_exhaustive]
 pub struct AppState {
     pub db_pool: sqlx::PgPool,
 }
@@ -47,6 +52,18 @@ impl<'l> crate::handlers::Provider<&'l sqlx::PgPool> for &'l AppState {
     fn provide(self) -> &'l sqlx::PgPool {
         &self.db_pool
     }
+}
+
+impl<'l> crate::handlers::Provider<&'l sqlx::PgPool> for &'l Arc<AppState> {
+    fn provide(self) -> &'l sqlx::PgPool {
+        &self.db_pool
+    }
+}
+
+fn router(app_state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/api/market/products", get(crate::queries::get_products))
+        .with_state(app_state)
 }
 
 pub mod dev;
