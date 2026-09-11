@@ -128,7 +128,7 @@ impl<Signature, This: Callable<Signature>> CallableExt<Signature> for This {
 
 pub trait Operation<Signature>: Callable<Signature> + Bindable<Signature>
 where
-    // As of Rust 1.98.1, the following bound is not yet supported in stable Rust.
+    // As of Rust 1.98.1, the following constraint is not yet supported in stable Rust.
     // This is worked around with `Self::PartialOperation` and `Self::partial_is_partial_operation`.
     /*
     for<Bound: AddInto<Signature>> Self::Partial<Bound>: Operation<Bound::Addend>
