@@ -388,3 +388,6 @@ where
         partial
     }
 }
+
+#[cfg(test)]
+mod tests;
