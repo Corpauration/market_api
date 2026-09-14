@@ -211,6 +211,66 @@ impl<Signature, This: Operation<Signature>> OperationExt<Signature> for This {
 #[rustfmt::skip]
 #[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(PartialOrd, Ord)] #[derive(Hash)]
 #[derive(frunk::Generic, frunk::LabelledGeneric)]
+pub struct StructuringIdentity;
+
+impl<Signature> Bindable<Signature> for StructuringIdentity {
+    type Partial<Bound: AddInto<Signature>> = Partial<StructuringIdentity, Bound, Signature>;
+
+    fn bind<Arguments: AddInto<Signature>>(self, arguments: Arguments) -> Self::Partial<Arguments> {
+        Partial::new(self, arguments)
+    }
+}
+
+impl<Signature> Callable<Signature> for StructuringIdentity {
+    type Result = Signature;
+
+    fn call(self, arguments: Signature) -> Self::Result {
+        let StructuringIdentity = self;
+        arguments
+    }
+}
+
+impl<Signature> Operation<Signature> for StructuringIdentity {
+    type PartialOperation<Bound: AddInto<Signature>> = Self::Partial<Bound>;
+
+    fn partial_is_partial_operation<Bound: AddInto<Signature>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound> {
+        partial
+    }
+}
+
+#[rustfmt::skip]
+#[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(PartialOrd, Ord)] #[derive(Hash)]
+#[derive(frunk::Generic, frunk::LabelledGeneric)]
+pub struct DestructuringIdentity;
+
+impl<Value> Bindable<frunk::HList![Value]> for DestructuringIdentity {
+    type Partial<Bound: AddInto<frunk::HList![Value]>> = Partial<DestructuringIdentity, Bound, frunk::HList![Value]>;
+
+    fn bind<Arguments: AddInto<frunk::HList![Value]>>(self, arguments: Arguments) -> Self::Partial<Arguments> {
+        Partial::new(self, arguments)
+    }
+}
+
+impl<Value> Callable<frunk::HList![Value]> for DestructuringIdentity {
+    type Result = Value;
+
+    fn call(self, frunk::hlist_pat![value]: frunk::HList![Value]) -> Self::Result {
+        let DestructuringIdentity = self;
+        value
+    }
+}
+
+impl<Value> Operation<frunk::HList![Value]> for DestructuringIdentity {
+    type PartialOperation<Bound: AddInto<frunk::HList![Value]>> = Self::Partial<Bound>;
+
+    fn partial_is_partial_operation<Bound: AddInto<frunk::HList![Value]>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound> {
+        partial
+    }
+}
+
+#[rustfmt::skip]
+#[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(PartialOrd, Ord)] #[derive(Hash)]
+#[derive(frunk::Generic, frunk::LabelledGeneric)]
 pub struct Folder<Head, Tail> {
     pub head: Head,
     pub tail: Tail,
