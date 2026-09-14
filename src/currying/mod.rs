@@ -38,6 +38,19 @@ where
 pub trait AddIntoSelf: AddInto<Self> + Sized {}
 impl<This: AddInto<Self>> AddIntoSelf for This {}
 
+pub trait HListExt: HList {
+    type IndicesToSculptSelf;
+}
+impl HListExt for HNil {
+    type IndicesToSculptSelf = HNil;
+}
+impl<Head, Tail> HListExt for HCons<Head, Tail>
+where
+    Tail: HListExt,
+{
+    type IndicesToSculptSelf = HCons<frunk::indices::Here, Tail::IndicesToSculptSelf>;
+}
+
 pub trait Bindable<Signature> {
     type Partial<Bound: AddInto<Signature>>: Bindable<Bound::Addend>;
 
@@ -121,6 +134,11 @@ pub trait CallableExt<Signature>: Callable<Signature> {
     where
         Self: Sized,
     ;
+
+    fn structure(self) -> Structured<Self, Signature>
+    where
+        Self: Sized,
+    ;
 }
 impl<Signature, This: Callable<Signature>> CallableExt<Signature> for This {
     fn call_with_default(self) -> Self::Result
@@ -149,6 +167,13 @@ impl<Signature, This: Callable<Signature>> CallableExt<Signature> for This {
         Self: Sized,
     {
         Curry(self)
+    }
+
+    fn structure(self) -> Structured<Self, Signature>
+    where
+        Self: Sized,
+    {
+        Structured::new(self)
     }
 }
 
@@ -182,6 +207,30 @@ pub trait OperationExt<Signature>: Operation<Signature> {
     where
         Signature: AddIntoSelf
     ;
+
+    fn compose<NextApplication, NextSignature>(self, next_application: NextApplication) -> Composed<Self, NextApplication, Signature, NextSignature>
+    where
+        Self: Sized,
+        NextApplication: Operation<NextSignature>,
+        Self::Result: AddInto<NextSignature>,
+        Signature: HListExt,
+    ;
+
+    fn then<NextApplication, NextSignature>(self, next_application: NextApplication) -> Composed<Structured<Self, Signature>, NextApplication, Signature, NextSignature>
+    where
+        Self: Sized,
+        NextApplication: Operation<NextSignature>,
+        frunk::HList![Self::Result]: AddInto<NextSignature>,
+        Signature: HListExt,
+    ;
+
+    fn bind_from<PreviousApplication, PreviousSignature>(self, previous_application: PreviousApplication) -> Composed<PreviousApplication, Self, PreviousSignature, Signature>
+    where
+        Self: Sized,
+        PreviousApplication: Operation<PreviousSignature>,
+        PreviousApplication::Result: AddInto<Signature>,
+        PreviousSignature: HListExt,
+    ;
 }
 impl<Signature, This: Operation<Signature>> OperationExt<Signature> for This {
     fn op_bind<Arguments: AddInto<Signature>>(self, arguments: Arguments) -> Self::PartialOperation<Arguments> {
@@ -206,65 +255,35 @@ impl<Signature, This: Operation<Signature>> OperationExt<Signature> for This {
     where
         Signature: AddIntoSelf
     ;
-}
 
-#[rustfmt::skip]
-#[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(PartialOrd, Ord)] #[derive(Hash)]
-#[derive(frunk::Generic, frunk::LabelledGeneric)]
-pub struct StructuringIdentity;
-
-impl<Signature> Bindable<Signature> for StructuringIdentity {
-    type Partial<Bound: AddInto<Signature>> = Partial<StructuringIdentity, Bound, Signature>;
-
-    fn bind<Arguments: AddInto<Signature>>(self, arguments: Arguments) -> Self::Partial<Arguments> {
-        Partial::new(self, arguments)
+    fn compose<NextApplication, NextSignature>(self, next_application: NextApplication) -> Composed<Self, NextApplication, Signature, NextSignature>
+    where
+        Self: Sized,
+        NextApplication: Operation<NextSignature>,
+        Self::Result: AddInto<NextSignature>,
+        Signature: HListExt,
+    {
+        Composed::new(self, next_application)
     }
-}
 
-impl<Signature> Callable<Signature> for StructuringIdentity {
-    type Result = Signature;
-
-    fn call(self, arguments: Signature) -> Self::Result {
-        let StructuringIdentity = self;
-        arguments
+    fn then<NextApplication, NextSignature>(self, next_application: NextApplication) -> Composed<Structured<Self, Signature>, NextApplication, Signature, NextSignature>
+    where
+        Self: Sized,
+        NextApplication: Operation<NextSignature>,
+        frunk::HList![Self::Result]: AddInto<NextSignature>,
+        Signature: HListExt,
+    {
+        self.structure().compose(next_application)
     }
-}
 
-impl<Signature> Operation<Signature> for StructuringIdentity {
-    type PartialOperation<Bound: AddInto<Signature>> = Self::Partial<Bound>;
-
-    fn partial_is_partial_operation<Bound: AddInto<Signature>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound> {
-        partial
-    }
-}
-
-#[rustfmt::skip]
-#[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(PartialOrd, Ord)] #[derive(Hash)]
-#[derive(frunk::Generic, frunk::LabelledGeneric)]
-pub struct DestructuringIdentity;
-
-impl<Value> Bindable<frunk::HList![Value]> for DestructuringIdentity {
-    type Partial<Bound: AddInto<frunk::HList![Value]>> = Partial<DestructuringIdentity, Bound, frunk::HList![Value]>;
-
-    fn bind<Arguments: AddInto<frunk::HList![Value]>>(self, arguments: Arguments) -> Self::Partial<Arguments> {
-        Partial::new(self, arguments)
-    }
-}
-
-impl<Value> Callable<frunk::HList![Value]> for DestructuringIdentity {
-    type Result = Value;
-
-    fn call(self, frunk::hlist_pat![value]: frunk::HList![Value]) -> Self::Result {
-        let DestructuringIdentity = self;
-        value
-    }
-}
-
-impl<Value> Operation<frunk::HList![Value]> for DestructuringIdentity {
-    type PartialOperation<Bound: AddInto<frunk::HList![Value]>> = Self::Partial<Bound>;
-
-    fn partial_is_partial_operation<Bound: AddInto<frunk::HList![Value]>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound> {
-        partial
+    fn bind_from<PreviousApplication, PreviousSignature>(self, previous_application: PreviousApplication) -> Composed<PreviousApplication, Self, PreviousSignature, Signature>
+    where
+        Self: Sized,
+        PreviousApplication: Operation<PreviousSignature>,
+        PreviousApplication::Result: AddInto<Signature>,
+        PreviousSignature: HListExt,
+    {
+        previous_application.compose(self)
     }
 }
 
@@ -527,6 +546,167 @@ where
     type PartialOperation<Bound: AddInto<ReducedSignature>> = Self::Partial<Bound>;
 
     fn partial_is_partial_operation<Bound: AddInto<ReducedSignature>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound> {
+        partial
+    }
+}
+
+#[rustfmt::skip]
+#[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(PartialOrd, Ord)] #[derive(Hash)]
+#[derive(frunk::Generic, frunk::LabelledGeneric)]
+pub struct Composed<FirstApplication, SecondApplication, FirstSignature, SecondSignature> {
+    pub first_application: FirstApplication,
+    pub second_application: SecondApplication,
+    pub _first_signature: std::marker::PhantomData<FirstSignature>,
+    pub _second_signature: std::marker::PhantomData<SecondSignature>,
+}
+
+impl<FirstApplication, SecondApplication, FirstSignature, SecondSignature> Composed<FirstApplication, SecondApplication, FirstSignature, SecondSignature> {
+    pub fn new(first_application: FirstApplication, second_application: SecondApplication) -> Self {
+        Self {
+            first_application,
+            second_application,
+            _first_signature: std::marker::PhantomData,
+            _second_signature: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<FirstApplication, SecondApplication, ThirdApplication, FirstSignature, SecondSignature, ThirdSignature, IntermediateSignature> Composed<Composed<FirstApplication, SecondApplication, FirstSignature, SecondSignature>, ThirdApplication, IntermediateSignature, ThirdSignature>
+where
+    FirstSignature: HListExt,
+    SecondSignature: HListExt,
+    FirstApplication: Operation<FirstSignature>,
+    SecondApplication: Operation<SecondSignature>,
+    ThirdApplication: Operation<ThirdSignature>,
+    FirstApplication::Result: AddInto<SecondSignature>,
+    SecondApplication::Result: AddInto<ThirdSignature>,
+    IntermediateSignature: frunk::hlist::Sculptor<FirstSignature, FirstSignature::IndicesToSculptSelf, Remainder = <FirstApplication::Result as AddInto<SecondSignature>>::Addend>,
+{
+    pub fn associate_right<NewIntermediateSignature>(self) -> Composed<FirstApplication, Composed<SecondApplication, ThirdApplication, SecondSignature, ThirdSignature>, FirstSignature, NewIntermediateSignature>
+    where
+        NewIntermediateSignature: frunk::hlist::Sculptor<SecondSignature, SecondSignature::IndicesToSculptSelf, Remainder = <SecondApplication::Result as AddInto<ThirdSignature>>::Addend>,
+    {
+        let Composed { first_application: Composed { first_application, second_application, .. }, second_application: third_application, .. } = self;
+        Composed::new(first_application, Composed::new(second_application, third_application))
+    }
+}
+
+impl<FirstApplication, SecondApplication, ThirdApplication, FirstSignature, SecondSignature, ThirdSignature, IntermediateSignature> Composed<FirstApplication, Composed<SecondApplication, ThirdApplication, SecondSignature, ThirdSignature>, FirstSignature, IntermediateSignature>
+where
+    FirstSignature: HListExt,
+    SecondSignature: HListExt,
+    FirstApplication: Operation<FirstSignature>,
+    SecondApplication: Operation<SecondSignature>,
+    ThirdApplication: Operation<ThirdSignature>,
+    FirstApplication::Result: AddInto<SecondSignature>,
+    SecondApplication::Result: AddInto<ThirdSignature>,
+    IntermediateSignature: frunk::hlist::Sculptor<SecondSignature, SecondSignature::IndicesToSculptSelf, Remainder = <SecondApplication::Result as AddInto<ThirdSignature>>::Addend>,
+{
+    pub fn associate_left<NewIntermediateSignature>(self) -> Composed<Composed<FirstApplication, SecondApplication, FirstSignature, SecondSignature>, ThirdApplication, NewIntermediateSignature, ThirdSignature>
+    where
+        NewIntermediateSignature: frunk::hlist::Sculptor<FirstSignature, FirstSignature::IndicesToSculptSelf, Remainder = <FirstApplication::Result as AddInto<SecondSignature>>::Addend>,
+    {
+        let Composed { first_application, second_application: Composed { first_application: second_application, second_application: third_application, .. }, .. } = self;
+        Composed::new(Composed::new(first_application, second_application), third_application)
+    }
+}
+
+impl<FirstApplication, SecondApplication, FirstSignature, SecondSignature, FullSignature> Bindable<FullSignature> for Composed<FirstApplication, SecondApplication, FirstSignature, SecondSignature>
+where
+    FirstSignature: HListExt,
+    FirstApplication: Operation<FirstSignature>,
+    SecondApplication: Operation<SecondSignature>,
+    FirstApplication::Result: AddInto<SecondSignature>,
+    FullSignature: frunk::hlist::Sculptor<FirstSignature, FirstSignature::IndicesToSculptSelf, Remainder = <FirstApplication::Result as AddInto<SecondSignature>>::Addend>,
+{
+    type Partial<Bound: AddInto<FullSignature>> = Partial<Composed<FirstApplication, SecondApplication, FirstSignature, SecondSignature>, Bound, FullSignature>;
+
+    fn bind<Arguments: AddInto<FullSignature>>(self, arguments: Arguments) -> Self::Partial<Arguments> {
+        Partial::new(self, arguments)
+    }
+}
+
+impl<FirstApplication, SecondApplication, FirstSignature, SecondSignature, FullSignature> Callable<FullSignature> for Composed<FirstApplication, SecondApplication, FirstSignature, SecondSignature>
+where
+    FirstSignature: HListExt,
+    FirstApplication: Operation<FirstSignature>,
+    SecondApplication: Operation<SecondSignature>,
+    FirstApplication::Result: AddInto<SecondSignature>,
+    FullSignature: frunk::hlist::Sculptor<FirstSignature, FirstSignature::IndicesToSculptSelf, Remainder = <FirstApplication::Result as AddInto<SecondSignature>>::Addend>,
+{
+    type Result = SecondApplication::Result;
+
+    fn call(self, arguments: FullSignature) -> Self::Result {
+        let Composed { first_application, second_application, .. } = self;
+        let (first_arguments, remainder) = arguments.sculpt();
+        let first_result = first_application.call(first_arguments);
+        let second_arguments = first_result.add_into(remainder);
+        second_application.call(second_arguments)
+    }
+}
+
+impl<FirstApplication, SecondApplication, FirstSignature, SecondSignature, FullSignature> Operation<FullSignature> for Composed<FirstApplication, SecondApplication, FirstSignature, SecondSignature>
+where
+    FirstSignature: HListExt,
+    FirstApplication: Operation<FirstSignature>,
+    SecondApplication: Operation<SecondSignature>,
+    FirstApplication::Result: AddInto<SecondSignature>,
+    FullSignature: frunk::hlist::Sculptor<FirstSignature, FirstSignature::IndicesToSculptSelf, Remainder = <FirstApplication::Result as AddInto<SecondSignature>>::Addend>,
+{
+    type PartialOperation<Bound: AddInto<FullSignature>> = Self::Partial<Bound>;
+
+    fn partial_is_partial_operation<Bound: AddInto<FullSignature>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound> {
+        partial
+    }
+}
+
+#[rustfmt::skip]
+#[derive(Debug)] #[derive(Clone, Copy)] #[derive(PartialEq, Eq)] #[derive(PartialOrd, Ord)] #[derive(Hash)]
+#[derive(frunk::Generic, frunk::LabelledGeneric)]
+pub struct Structured<Application, Signature> {
+    pub application: Application,
+    pub _signature: std::marker::PhantomData<Signature>,
+}
+
+impl<Application, Signature> Structured<Application, Signature> {
+    pub fn new(application: Application) -> Self {
+        Self {
+            application,
+            _signature: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<Application, Signature> Bindable<Signature> for Structured<Application, Signature>
+where
+    Application: Bindable<Signature>,
+{
+    type Partial<Bound: AddInto<Signature>> = Partial<Structured<Application, Signature>, Bound, Signature>;
+
+    fn bind<Arguments: AddInto<Signature>>(self, arguments: Arguments) -> Self::Partial<Arguments> {
+        Partial::new(self, arguments)
+    }
+}
+
+impl<Application, Signature> Callable<Signature> for Structured<Application, Signature>
+where
+    Application: Callable<Signature>,
+{
+    type Result = frunk::HList![Application::Result];
+
+    fn call(self, arguments: Signature) -> Self::Result {
+        let Structured { application, .. } = self;
+        frunk::hlist![application.call(arguments)]
+    }
+}
+
+impl<Application, Signature> Operation<Signature> for Structured<Application, Signature>
+where
+    Application: Operation<Signature>,
+{
+    type PartialOperation<Bound: AddInto<Signature>> = Self::Partial<Bound>;
+
+    fn partial_is_partial_operation<Bound: AddInto<Signature>>(partial: Self::Partial<Bound>) -> Self::PartialOperation<Bound> {
         partial
     }
 }
