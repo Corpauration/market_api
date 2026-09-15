@@ -49,7 +49,7 @@ impl PgValueRefToStringResult for Result<String, sqlx::error::BoxDynError> {
     fn build(value: &sqlx::postgres::PgValueRef<'_>) -> Self {
         match value.format() {
             sqlx::postgres::PgValueFormat::Text => {
-                value.as_str().map(|value_str| format!("{}", value_str))
+                value.as_str().map(|value_str| value_str.to_string())
             },
             sqlx::postgres::PgValueFormat::Binary => {
                 value.as_bytes().map(|bytes| format!("<Bytes: {:?}>", bytes))
