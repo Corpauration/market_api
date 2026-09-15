@@ -7,13 +7,11 @@ pub async fn require_superuser_passphrase(request: axum::extract::Request, next:
         true => {
             let auth_header = request.headers().get(axum::http::header::AUTHORIZATION);
 
-            if let Some(auth_header) = auth_header {
-                if let Ok(auth_str) = auth_header.to_str() {
-                    if auth_str == "SuperuserPassphrase" {
+            if let Some(auth_header) = auth_header
+                && let Ok(auth_str) = auth_header.to_str()
+                    && auth_str == "SuperuserPassphrase" {
                         return Ok(next.run(request).await);
                     }
-                }
-            }
 
             Err(axum::http::StatusCode::UNAUTHORIZED)
         },

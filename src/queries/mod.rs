@@ -1,9 +1,9 @@
 pub mod data;
-#![allow(dead_code)]
+//#![allow(dead_code)]
 
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::State,
     http::StatusCode,
     response::IntoResponse,
 };
@@ -13,7 +13,7 @@ use sqlx::{SqlSafeStr, SqlStr};
 use std::fmt::{Display as StdDisplay, Error, Formatter};
 use std::sync::Arc;
 
-use super::data::Product;
+use super::queries::data::Product;
 use crate::routes::AppState;
 
 #[derive(Display)]
