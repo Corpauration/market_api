@@ -63,7 +63,9 @@ create table user_contact_info_email_addresses
 
 -- 'email_addresses' list
 create table email_address_disablements
-( email_address_id integer not null primary key references email_addresses(id)
+( email_address_id integer not null references email_addresses(id)
+, id smallint not null
+, primary key (email_address_id, id)
 , created_at timestamptz not null default (now())
 );
 
