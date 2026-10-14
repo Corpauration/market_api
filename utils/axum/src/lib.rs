@@ -26,3 +26,30 @@ pub trait RouteBundle<State: AxumRouterState = ()>
         router.nest(path, self.into_router())
     }
 }
+
+/// Extension trait for axum routers to support route bundles.
+pub trait RouterExt<State: AxumRouterState>
+{
+    /// Rawly apply a route bundle to this router.
+    fn apply_bundle(self, bundle: impl RouteBundle<State>) -> Self;
+
+    /// Merge a route bundle with this router.
+    fn merge_bundle(self, bundle: impl RouteBundle<State>) -> Self;
+
+    /// Nest a route bundle into this router.
+    fn nest_bundle(self, path: &str, bundle: impl RouteBundle<State>) -> Self;
+}
+impl<State: AxumRouterState> RouterExt<State> for axum::Router<State>
+{
+    fn apply_bundle(self, bundle: impl RouteBundle<State>) -> Self {
+        bundle.apply_to(self)
+    }
+
+    fn merge_bundle(self, bundle: impl RouteBundle<State>) -> Self {
+        bundle.merge_with(self)
+    }
+
+    fn nest_bundle(self, path: &str, bundle: impl RouteBundle<State>) -> Self {
+        bundle.nest_in(path, self)
+    }
+}
