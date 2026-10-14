@@ -53,3 +53,31 @@ impl<State: AxumRouterState> RouterExt<State> for axum::Router<State>
         bundle.nest_in(path, self)
     }
 }
+
+#[cfg(test)]
+mod tests
+{
+    use super::*;
+
+    #[test]
+    fn test_route_bundle() {
+        use tower::ServiceExt;
+
+        const PAYLOAD: &str = "Hello, World!";
+
+        struct MyBundle;
+        impl RouteBundle for MyBundle {
+            fn apply_to(self, router: axum::Router) -> axum::Router {
+                router.route("/test", axum::routing::get(|| async { PAYLOAD }))
+            }
+        }
+
+        let router = MyBundle.into_router();
+        let request = axum::http::Request::builder().uri("/test").body(axum::body::Body::empty()).unwrap();
+        let future = router.oneshot(request);
+        let response = futures::executor::block_on(future).unwrap();
+        assert_eq!(response.status(), axum::http::StatusCode::OK);
+        let body = futures::executor::block_on(axum::body::to_bytes(response.into_body(), usize::MAX)).unwrap();
+        assert_eq!(body, PAYLOAD);
+    }
+}
